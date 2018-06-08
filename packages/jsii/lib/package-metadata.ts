@@ -13,6 +13,11 @@ export interface PackageMetadata {
     version: string
 
     /**
+     * The module's root directory (where package.json is located)
+     */
+    root: string
+
+    /**
      * The module's entrypoint (package.main)
      */
     main: string
@@ -42,9 +47,17 @@ export interface PackageMetadata {
      * Package npm dependencies (package.dependencies)
      */
     dependencies: { [name: string]: string }
+
+    /**
+     * Configuration flags pushed down to tsconfig.
+     */
+    tsconfig?: {
+        /** The directory where ``.js`` and ``.d.ts`` files are to be emitted. */
+        outDir?: string
+     }
 }
 
-export default async function readPackageMetadata(moduleDir: string): Promise<PackageMetadata> {
+export async function readPackageMetadata(moduleDir: string): Promise<PackageMetadata> {
     const pkgFile = path.resolve(path.join(moduleDir, 'package.json'));
 
     let pkg: any = { };
@@ -69,15 +82,27 @@ export default async function readPackageMetadata(moduleDir: string): Promise<Pa
     const main = path.join(moduleDir, pkg.main);
     const types = path.join(moduleDir, pkg.types);
     const outdir = path.resolve(moduleDir, pkg.jsii.outdir);
+    const tsconfig = pkg.jsii.tsconfig || {};
+
+    let entrypoint = types.replace(/\.d\.ts$/, '.ts');
+    if (tsconfig.outDir) {
+        if (!entrypoint.startsWith(`${path.join(moduleDir, tsconfig.outDir)}/`)) {
+            throw new Error(`The package.json file has 'jsii.tsconfig.outDir' set to '${tsconfig.outdir}', but 'types' isn't within this folder.`);
+        }
+        // The entrypoint will be rooted in the tsconfig.outDir now... Need to fix it up to the .ts file!
+        entrypoint = entrypoint.replace(path.join(moduleDir, tsconfig.outDir), moduleDir);
+    }
 
     return {
         name: pkg.name,
         version: pkg.version,
+        root: moduleDir,
         outdir,
+        tsconfig,
         main,
         dependencies: pkg.dependencies || {},
         bundledDependencies: pkg.jsii.bundledDependencies || [],
         names: pkg.jsii.names || {},
-        entrypoint: types.replace(/\.d\.ts$/, '.ts')
+        entrypoint
     };
 }

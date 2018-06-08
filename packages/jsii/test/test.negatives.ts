@@ -2,6 +2,7 @@ import { Test } from 'nodeunit'
 import * as fs from 'fs'
 import * as path from 'path'
 import { compileSources } from '../lib/compiler'
+import { PackageMetadata } from '../lib/package-metadata';
 
 let tests: any = { };
 let negativesDir = path.join(__dirname, 'negatives');
@@ -35,7 +36,18 @@ for (let source of fs.readdirSync(negativesDir)) {
         let matchError = await getExpectedErrorMessage(filePath);
         let failed = false;
         try {
-            await compileSources(path.join(negativesDir, source), undefined, undefined, /* warnings as errors */ true)
+            const pkg: PackageMetadata = {
+                name: 'failing-test',
+                version: '1.0.0',
+                root: negativesDir,
+                entrypoint: path.join(negativesDir, source),
+                main: path.join(negativesDir, source.replace(/\.ts$/, '.js')),
+                outdir: 'dist',
+                dependencies: {},
+                bundledDependencies: [],
+                names: {}
+            };
+            await compileSources(pkg, undefined, undefined, /* warnings as errors */ true)
         }
         catch (e) {
             for (let match of matchError) {

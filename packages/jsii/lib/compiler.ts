@@ -7,7 +7,7 @@ import * as ts from 'typescript';
 import * as util from 'util';
 import { getCompilerOptions, saveCompilerOptions } from './compiler-options';
 import { normalizeJsiiModuleName } from './naming';
-import readPackageMetadata from './package-metadata';
+import { PackageMetadata, readPackageMetadata } from './package-metadata';
 
 /**
  * Given a CommonJS (npm) typescript package, produces a JSII specification for it.
@@ -47,7 +47,7 @@ export async function compilePackage(packageDir: string, includeDirs = [ 'test',
     const { lookup, dependencies, bundled, nativenames } =
         await readDependencies(packageDir, pkg.dependencies, pkg.bundledDependencies, languages);
 
-    const mod = await compileSources(pkg.entrypoint, files, lookup);
+    const mod = await compileSources(pkg, files, lookup);
 
     // add package information
     mod.name = normalizeJsiiModuleName(pkg.name);
@@ -86,12 +86,16 @@ interface ReferencedFqn {
  * @param entrypoint The main source file.
  * @param otherSources Other source files to include.
  */
-export async function compileSources(entrypoint: string,
+export async function compileSources(pkg: PackageMetadata,
                                      otherSources = new Array<string>(),
                                      externalTypes = new Map<string, spec.Type>(),
                                      treatWarningsAsErrors = false): Promise<spec.Assembly> {
-    const options = getCompilerOptions();
-    const prog = compileProgramSync([ entrypoint, ...otherSources ], options);
+    const options = getCompilerOptions(pkg);
+    if (options.outDir && !options.outDir.startsWith('/')) {
+        // If outDir is relative, make it absolute, otherwise it'll be relative to cwd.
+        options.outDir = path.join(pkg.root, options.outDir);
+    }
+    const prog = compileProgramSync([ pkg.entrypoint, ...otherSources ], options);
     const typeChecker = prog.getTypeChecker();
     const sourceFile = prog.getSourceFile(prog.getRootFileNames()[0]);
     if (!sourceFile) { throw new Error('No source file found!'); }

@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as webpack from 'webpack';
 import { compilePackage } from './compiler';
 import { normalizeJsiiModuleName } from './naming';
-import readPackageMetadata from './package-metadata';
+import { readPackageMetadata } from './package-metadata';
 import { filterEmpty } from './util';
 
 export async function bundle(moduleRoot: string) {
