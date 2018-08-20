@@ -83,6 +83,8 @@ export abstract class Target {
         const results = new Array<string>();
         const pkg = await fs.readJson(path.join(packageDir, 'package.json'));
 
+        logging.debug(`+++ findLocalDepsOut("${packageDir}")`);
+
         // no jsii or jsii.outdir - either a misconfigured jsii package or a non-jsii dependency. either way, we are done here.
         if (!pkg.jsii || !pkg.jsii.outdir) {
             return [];

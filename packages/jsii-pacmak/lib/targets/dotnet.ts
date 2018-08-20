@@ -69,7 +69,7 @@ export default class Dotnet extends Target {
             // Couldn't locate jsii-dotnet-runtime, which is owkay!
         }
 
-        logging.debug('local NuGet repos:', localRepos);
+        logging.debug('+++local NuGet repos:', localRepos);
 
         // Construct XML content.
         const configuration = xmlbuilder.create('configuration', { encoding: 'UTF-8' });
